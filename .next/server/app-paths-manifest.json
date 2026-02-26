@@ -1,3 +1,26 @@
 {
-  "/builder/page": "app/builder/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/health/route": "app/api/health/route.js",
+  "/icon.svg/route": "app/icon.svg/route.js",
+  "/api/plugins/route": "app/api/plugins/route.js",
+  "/api/auth/route": "app/api/auth/route.js",
+  "/api/projects/[id]/assets/route": "app/api/projects/[id]/assets/route.js",
+  "/api/projects/[id]/analytics/route": "app/api/projects/[id]/analytics/route.js",
+  "/api/projects/[id]/automations/route": "app/api/projects/[id]/automations/route.js",
+  "/api/projects/[id]/collaborators/route": "app/api/projects/[id]/collaborators/route.js",
+  "/api/projects/[id]/data-models/route": "app/api/projects/[id]/data-models/route.js",
+  "/api/projects/[id]/data-models/[modelId]/records/route": "app/api/projects/[id]/data-models/[modelId]/records/route.js",
+  "/api/projects/[id]/comments/route": "app/api/projects/[id]/comments/route.js",
+  "/api/projects/[id]/deploy/route": "app/api/projects/[id]/deploy/route.js",
+  "/api/projects/[id]/pages/[pageId]/route": "app/api/projects/[id]/pages/[pageId]/route.js",
+  "/api/projects/[id]/variables/route": "app/api/projects/[id]/variables/route.js",
+  "/api/projects/[id]/pages/route": "app/api/projects/[id]/pages/route.js",
+  "/api/projects/[id]/export/route": "app/api/projects/[id]/export/route.js",
+  "/api/projects/[id]/route": "app/api/projects/[id]/route.js",
+  "/api/templates/route": "app/api/templates/route.js",
+  "/api/projects/[id]/widgets/[widgetId]/route": "app/api/projects/[id]/widgets/[widgetId]/route.js",
+  "/api/projects/route": "app/api/projects/route.js",
+  "/api/projects/[id]/widgets/route": "app/api/projects/[id]/widgets/route.js",
+  "/builder/page": "app/builder/page.js",
+  "/page": "app/page.js"
 }

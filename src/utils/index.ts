@@ -6,6 +6,15 @@
 
 import { DimensionValue, SpacingValue, BorderRadiusValue, WidgetStyle, BorderStyle, BackgroundValue, BorderValue, ShadowValue } from '@/types/widget.types';
 import { Point2D, Rect, ViewportTransform } from '@/types/canvas.types';
+import { clsx, type ClassValue } from 'clsx';
+
+/* ──────────────────────────────────────────────
+ * cn — className merger
+ * ────────────────────────────────────────────── */
+
+export function cn(...inputs: ClassValue[]): string {
+  return clsx(inputs);
+}
 
 /* ──────────────────────────────────────────────
  * ID Generation
