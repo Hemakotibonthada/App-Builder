@@ -1,0 +1,595 @@
+// ============================================================
+// AppBuilder – Prisma Schema
+// Full relational schema for the web-builder application
+// DB: SQLite (swap to PostgreSQL for production)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── Authentication & Users ─────────────────────────────────
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  passwordHash   String
+  firstName      String?
+  lastName       String?
+  avatarUrl      String?
+  role           String          @default("user") // admin, editor, viewer, user
+  isActive       Boolean         @default(true)
+  emailVerified  Boolean         @default(false)
+  lastLoginAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  sessions       Session[]
+  projects       Project[]
+  collaborations Collaborator[]
+  comments       Comment[]
+  activities     ActivityLog[]
+  apiKeys        ApiKey[]
+  notifications  Notification[]
+  uploadedAssets Asset[]
+
+  @@index([email])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique
+  refreshToken String?  @unique
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  userId      String
+  name        String
+  keyHash     String    @unique
+  prefix      String    // first 8 chars for display
+  permissions String    @default("read") // JSON array of permissions
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([keyHash])
+  @@index([userId])
+}
+
+// ─── Projects ───────────────────────────────────────────────
+
+model Project {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  thumbnailUrl String?
+  isPublished  Boolean  @default(false)
+  isArchived   Boolean  @default(false)
+  isTemplate   Boolean  @default(false)
+  version      Int      @default(1)
+
+  // Settings stored as JSON
+  settings     String   @default("{}") // ProjectSettings JSON
+  theme        String   @default("{}") // ThemeConfig JSON
+  customCode   String   @default("{}") // { head, bodyStart, bodyEnd, globalCSS, globalJS }
+  seoDefaults  String   @default("{}") // Default SEO settings
+  buildConfig  String   @default("{}") // BuildConfig JSON
+  
+  ownerId      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  publishedAt  DateTime?
+
+  owner         User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pages         Page[]
+  widgets       Widget[]
+  assets        Asset[]
+  variables     Variable[]
+  apiEndpoints  ApiEndpoint[]
+  dataModels    DataModel[]
+  collaborators Collaborator[]
+  deployments   Deployment[]
+  comments      Comment[]
+  activities    ActivityLog[]
+  snapshots     ProjectSnapshot[]
+  templates     TemplateEntry[]
+
+  @@index([ownerId])
+  @@index([slug])
+  @@index([isTemplate])
+}
+
+model ProjectSnapshot {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  data        String   // Full project JSON snapshot
+  version     Int
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ─── Pages ──────────────────────────────────────────────────
+
+model Page {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  path        String   // Route path e.g. "/about"
+  title       String?  // SEO title
+  description String?  // SEO description
+  ogImage     String?
+  isHomePage  Boolean  @default(false)
+  isPublished Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  layout      String   @default("default") // layout template
+  meta        String   @default("{}") // Additional metadata JSON
+  customCSS   String?
+  customJS    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  widgets Widget[]
+
+  @@unique([projectId, path])
+  @@index([projectId])
+}
+
+// ─── Widgets (Components) ───────────────────────────────────
+
+model Widget {
+  id            String   @id @default(uuid())
+  projectId     String
+  pageId        String?
+  parentId      String?
+  name          String
+  type          String   // WidgetType enum value
+  props         String   @default("{}") // Widget-specific props JSON
+  style         String   @default("{}") // WidgetStyle JSON
+  responsive    String   @default("{}") // Responsive overrides JSON
+  events        String   @default("[]") // Event handlers JSON
+  bindings      String   @default("[]") // Data bindings JSON
+  animations    String   @default("[]") // Animation config JSON
+  conditions    String   @default("{}") // Conditional rendering JSON
+  accessibility String   @default("{}") // a11y attributes JSON
+  locked        Boolean  @default(false)
+  hidden        Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  page     Page?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  parent   Widget?  @relation("WidgetHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Widget[] @relation("WidgetHierarchy")
+
+  @@index([projectId])
+  @@index([pageId])
+  @@index([parentId])
+  @@index([type])
+}
+
+// ─── Assets (Images, Fonts, Files) ──────────────────────────
+
+model Asset {
+  id          String   @id @default(uuid())
+  projectId   String?
+  uploadedById String?
+  name        String
+  fileName    String
+  mimeType    String
+  fileSize    Int      // bytes
+  url         String
+  thumbnailUrl String?
+  width       Int?     // for images
+  height      Int?     // for images
+  alt         String?
+  category    String   @default("general") // image, font, icon, video, document
+  tags        String   @default("[]") // JSON array of tags
+  metadata    String   @default("{}") // EXIF data, etc.
+  isGlobal    Boolean  @default(false) // shared across projects
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project    Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  uploadedBy User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([category])
+  @@index([mimeType])
+}
+
+// ─── Variables & Data Bindings ──────────────────────────────
+
+model Variable {
+  id           String   @id @default(uuid())
+  projectId    String
+  name         String
+  type         String   // string, number, boolean, object, array, color, url
+  defaultValue String?
+  currentValue String?
+  scope        String   @default("global") // global, page, component
+  isComputed   Boolean  @default(false)
+  expression   String?  // For computed variables
+  description  String?
+  group        String?  // Grouping for UI
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+// ─── API Endpoints (External Data Sources) ──────────────────
+
+model ApiEndpoint {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  method      String   @default("GET") // GET, POST, PUT, PATCH, DELETE
+  url         String
+  headers     String   @default("{}") // JSON headers
+  queryParams String   @default("{}") // JSON query params
+  body        String?  // Request body template
+  authType    String   @default("none") // none, bearer, apiKey, basic, oauth2
+  authConfig  String   @default("{}") // Auth configuration JSON
+  transform   String?  // Response transform expression
+  cacheTime   Int      @default(0) // Cache TTL in seconds
+  retryCount  Int      @default(0)
+  timeout     Int      @default(30000) // ms
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ─── Data Models (User-defined schemas) ─────────────────────
+
+model DataModel {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  fields      String   // JSON array of field definitions
+  validations String   @default("[]") // JSON validation rules
+  indexes     String   @default("[]") // JSON index definitions
+  relations   String   @default("[]") // JSON relation definitions
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  records     DataRecord[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+model DataRecord {
+  id          String   @id @default(uuid())
+  dataModelId String
+  data        String   // JSON record data
+  status      String   @default("active") // active, archived, deleted
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dataModel DataModel @relation(fields: [dataModelId], references: [id], onDelete: Cascade)
+
+  @@index([dataModelId])
+  @@index([status])
+}
+
+// ─── Collaboration ──────────────────────────────────────────
+
+model Collaborator {
+  id          String   @id @default(uuid())
+  projectId   String
+  userId      String
+  role        String   @default("editor") // owner, admin, editor, viewer
+  permissions String   @default("[]") // JSON array of specific permissions
+  invitedAt   DateTime @default(now())
+  acceptedAt  DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  parentId  String?  // For threaded comments
+  widgetId  String?  // Comment on specific widget
+  pageId    String?  // Comment on specific page
+  content   String
+  resolved  Boolean  @default(false)
+  position  String?  // JSON { x, y } for positioned comments
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment? @relation("CommentThread", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentThread")
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([widgetId])
+}
+
+// ─── Deployments & Publishing ───────────────────────────────
+
+model Deployment {
+  id          String   @id @default(uuid())
+  projectId   String
+  environment String   @default("production") // staging, production, preview
+  status      String   @default("pending") // pending, building, deploying, success, failed
+  version     Int
+  url         String?  // Deployed URL
+  buildLog    String?  // Build output
+  config      String   @default("{}") // Deployment config JSON
+  duration    Int?     // Build duration in ms
+  fileSize    Int?     // Total deployed size in bytes
+  error       String?
+  triggeredBy String?  // userId or "auto"
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@index([environment])
+}
+
+// ─── Templates ──────────────────────────────────────────────
+
+model TemplateEntry {
+  id          String   @id @default(uuid())
+  projectId   String?  // Source project (if derived)
+  name        String
+  description String?
+  category    String   @default("general") // landing, portfolio, ecommerce, blog, dashboard, form
+  tags        String   @default("[]") // JSON tags
+  thumbnailUrl String?
+  previewUrl  String?
+  data        String   // Full template JSON
+  isOfficial  Boolean  @default(false)
+  isFeatured  Boolean  @default(false)
+  usageCount  Int      @default(0)
+  rating      Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([category])
+  @@index([isOfficial])
+  @@index([isFeatured])
+}
+
+// ─── Activity Logging ───────────────────────────────────────
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  projectId  String?
+  userId     String?
+  action     String   // create, update, delete, publish, deploy, export, share, login, etc.
+  entityType String   // project, page, widget, asset, user, deployment, etc.
+  entityId   String?
+  details    String   @default("{}") // JSON details of the action
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ─── Notifications ──────────────────────────────────────────
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // info, success, warning, error, mention, invite, deploy
+  title     String
+  message   String
+  link      String?  // Action link
+  read      Boolean  @default(false)
+  data      String   @default("{}") // JSON extra data
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+// ─── Form Submissions (for published forms) ─────────────────
+
+model FormSubmission {
+  id          String   @id @default(uuid())
+  formId      String   // Widget ID of the form
+  projectId   String
+  data        String   // JSON form data
+  ipAddress   String?
+  userAgent   String?
+  status      String   @default("new") // new, read, archived, spam
+  createdAt   DateTime @default(now())
+
+  @@index([formId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ─── Plugin Registry ────────────────────────────────────────
+
+model Plugin {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  version     String
+  description String?
+  author      String?
+  category    String   @default("general")
+  icon        String?
+  config      String   @default("{}") // Plugin configuration schema
+  source      String   // Plugin source code or URL
+  isOfficial  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  downloads   Int      @default(0)
+  rating      Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  installations PluginInstallation[]
+
+  @@index([category])
+  @@index([isOfficial])
+}
+
+model PluginInstallation {
+  id         String   @id @default(uuid())
+  pluginId   String
+  projectId  String
+  config     String   @default("{}") // Instance configuration
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  plugin Plugin @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([pluginId, projectId])
+  @@index([projectId])
+}
+
+// ─── Scheduled Tasks & Automations ──────────────────────────
+
+model Automation {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  trigger     String   // JSON: { type: 'schedule' | 'event' | 'webhook', config: {...} }
+  actions     String   // JSON: array of action steps
+  conditions  String   @default("[]") // JSON: conditional logic
+  isActive    Boolean  @default(true)
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  runCount    Int      @default(0)
+  lastStatus  String?  // success, failed, skipped
+  lastError   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([isActive])
+  @@index([nextRunAt])
+}
+
+// ─── Webhook Registry ───────────────────────────────────────
+
+model Webhook {
+  id          String    @id @default(uuid())
+  projectId   String
+  name        String
+  url         String
+  secret      String?
+  events      String    // JSON array of event types
+  headers     String    @default("{}") // Custom headers
+  isActive    Boolean   @default(true)
+  lastFiredAt DateTime?
+  failCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([isActive])
+}
+
+// ─── A/B Testing ────────────────────────────────────────────
+
+model ABTest {
+  id          String   @id @default(uuid())
+  projectId   String
+  name        String
+  description String?
+  widgetId    String   // Widget being tested
+  variants    String   // JSON array of variant configs
+  traffic     String   @default("{}") // Traffic split config
+  goalType    String   @default("click") // click, conversion, engagement, time
+  goalConfig  String   @default("{}") // Goal configuration
+  status      String   @default("draft") // draft, running, paused, completed
+  startDate   DateTime?
+  endDate     DateTime?
+  results     String   @default("{}") // Test results JSON
+  winner      String?  // Winning variant ID
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+}
+
+// ─── Analytics Events ───────────────────────────────────────
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  projectId   String
+  sessionId   String
+  eventType   String   // pageview, click, scroll, form_submit, custom
+  eventName   String?
+  pageUrl     String?
+  widgetId    String?
+  data        String   @default("{}") // Event-specific data
+  referrer    String?
+  userAgent   String?
+  country     String?
+  device      String?  // mobile, tablet, desktop
+  browser     String?
+  duration    Int?     // Time on page in ms
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([createdAt])
+}

@@ -7,6 +7,7 @@
 
 import { configureStore, createSelector } from '@reduxjs/toolkit';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+import authReducer from './authSlice';
 import canvasReducer from './canvasSlice';
 import historyReducer from './historySlice';
 import projectReducer from './projectSlice';
@@ -18,6 +19,7 @@ import uiReducer from './uiSlice';
 
 export const store = configureStore({
   reducer: {
+    auth: authReducer,
     canvas: canvasReducer,
     history: historyReducer,
     project: projectReducer,
