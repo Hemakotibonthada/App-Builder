@@ -1,1 +1,189 @@
-{"version":3,"caseSensitive":false,"basePath":"","rewrites":{"beforeFiles":[],"afterFiles":[],"fallback":[]},"redirects":[{"source":"/:path+/","destination":"/:path+","permanent":true,"internal":true,"regex":"^(?:\\/((?:[^\\/]+?)(?:\\/(?:[^\\/]+?))*))\\/$"}],"headers":[]}
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/projects/[id]",
+      "regex": "^/api/projects/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/analytics",
+      "regex": "^/api/projects/([^/]+?)/analytics(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/analytics(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/assets",
+      "regex": "^/api/projects/([^/]+?)/assets(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/assets(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/automations",
+      "regex": "^/api/projects/([^/]+?)/automations(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/automations(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/collaborators",
+      "regex": "^/api/projects/([^/]+?)/collaborators(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/collaborators(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/comments",
+      "regex": "^/api/projects/([^/]+?)/comments(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/comments(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/data-models",
+      "regex": "^/api/projects/([^/]+?)/data\\-models(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/data\\-models(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/data-models/[modelId]/records",
+      "regex": "^/api/projects/([^/]+?)/data\\-models/([^/]+?)/records(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid",
+        "nxtPmodelId": "nxtPmodelId"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/data\\-models/(?<nxtPmodelId>[^/]+?)/records(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/deploy",
+      "regex": "^/api/projects/([^/]+?)/deploy(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/deploy(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/export",
+      "regex": "^/api/projects/([^/]+?)/export(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/export(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/pages",
+      "regex": "^/api/projects/([^/]+?)/pages(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/pages(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/pages/[pageId]",
+      "regex": "^/api/projects/([^/]+?)/pages/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid",
+        "nxtPpageId": "nxtPpageId"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/pages/(?<nxtPpageId>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/variables",
+      "regex": "^/api/projects/([^/]+?)/variables(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/variables(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/widgets",
+      "regex": "^/api/projects/([^/]+?)/widgets(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/widgets(?:/)?$"
+    },
+    {
+      "page": "/api/projects/[id]/widgets/[widgetId]",
+      "regex": "^/api/projects/([^/]+?)/widgets/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid",
+        "nxtPwidgetId": "nxtPwidgetId"
+      },
+      "namedRegex": "^/api/projects/(?<nxtPid>[^/]+?)/widgets/(?<nxtPwidgetId>[^/]+?)(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/builder",
+      "regex": "^/builder(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/builder(?:/)?$"
+    },
+    {
+      "page": "/icon.svg",
+      "regex": "^/icon\\.svg(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/icon\\.svg(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

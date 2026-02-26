@@ -23,6 +23,7 @@ import { BuildMode } from '@/types/build.types';
 import { AnimatedButton } from '@/components/shared/AnimatedButton';
 import { GlassCard } from '@/components/shared/GlassCard';
 import { generateProjectCode } from '@/services/CodeGenerator';
+import { packageAndDownload } from '@/services/ProjectPackager';
 
 /* ──────────────────────────────────────────────
  * Types
@@ -204,7 +205,7 @@ export function BuildModal() {
 
     // Step 1: Validate
     await delay(400);
-    setBuildProgress(15);
+    setBuildProgress(10);
     setBuildStatus('Auditing dependencies...');
 
     const widgetCount = Object.keys(widgets).length;
@@ -216,8 +217,9 @@ export function BuildModal() {
 
     // Step 2: Generate code
     await delay(500);
-    setBuildProgress(35);
-    setBuildStatus(`Generating code for ${pages.length} page(s)...`);
+    setBuildProgress(25);
+    const platformLabel = form.platform === TargetPlatform.Web ? 'Next.js' : 'Flutter';
+    setBuildStatus(`Generating ${platformLabel} code for ${pages.length} page(s)...`);
 
     const generatedFiles = generateProjectCode(widgets, pages, {
       platform: form.platform,
@@ -230,92 +232,65 @@ export function BuildModal() {
       formatCode: true,
       generateTypes: true,
       cleanArchitecture: true,
+      appName: form.appName,
+      bundleId: form.bundleId,
+      appVersion: form.appVersion,
+      buildNumber: form.buildNumber,
     });
 
     // Step 3: Compile
     await delay(600);
-    setBuildProgress(55);
+    setBuildProgress(45);
     setBuildStatus(`Compiling ${generatedFiles.length} files...`);
 
     // Step 4: Optimize
     await delay(500);
-    setBuildProgress(75);
+    setBuildProgress(60);
     setBuildStatus(form.optimization.minify ? 'Minifying & tree-shaking...' : 'Bundling assets...');
 
-    // Step 5: Package
+    // Step 5: Package into ZIP
     await delay(400);
-    setBuildProgress(90);
-    setBuildStatus('Packaging for download...');
+    setBuildProgress(75);
+    const outputLabel = form.platform === TargetPlatform.Android ? 'APK' : form.platform === TargetPlatform.IOS ? 'iOS project' : 'web application';
+    setBuildStatus(`Packaging ${outputLabel}...`);
 
-    // Step 6: Create downloadable ZIP-like file
-    await delay(300);
-    setBuildProgress(100);
-    setBuildStatus('Build complete!');
+    try {
+      const result = await packageAndDownload(generatedFiles, {
+        platform: form.platform,
+        appName: form.appName || 'my-app',
+        appVersion: form.appVersion,
+        buildNumber: form.buildNumber,
+        bundleId: form.bundleId,
+        envVars: form.envVars,
+        apiKeys: form.apiKeys,
+      });
 
-    // Generate the download
-    const appName = form.appName || 'my-app';
-    const safeName = appName.replace(/[^a-zA-Z0-9-_]/g, '-').toLowerCase();
-    const platformLabel = form.platform === TargetPlatform.Web ? 'nextjs' : form.platform === TargetPlatform.Android ? 'flutter-android' : 'flutter-ios';
+      setBuildProgress(100);
+      setBuildStatus('Build complete!');
 
-    let downloadContent = '';
-    downloadContent += `# ${appName} — Generated Source Code\n`;
-    downloadContent += `# Platform: ${form.platform} | Mode: ${form.mode} | Version: ${form.appVersion}\n`;
-    downloadContent += `# Build Number: ${form.buildNumber} | Bundle ID: ${form.bundleId}\n`;
-    downloadContent += `# Generated: ${new Date().toISOString()}\n`;
-    downloadContent += `# Files: ${generatedFiles.length} | Widgets: ${widgetCount} | Pages: ${pages.length}\n`;
-    downloadContent += `${'═'.repeat(70)}\n\n`;
+      const sizeKB = (result.size / 1024).toFixed(1);
+      const sizeMB = result.size > 1024 * 1024 ? ` (${(result.size / (1024 * 1024)).toFixed(2)} MB)` : '';
 
-    // Add environment variables
-    if (Object.keys(form.envVars).length > 0) {
-      downloadContent += `${'─'.repeat(70)}\n`;
-      downloadContent += `FILE: .env.local\n`;
-      downloadContent += `${'─'.repeat(70)}\n\n`;
-      for (const [key, value] of Object.entries(form.envVars)) {
-        downloadContent += `${key}=${value}\n`;
-      }
-      downloadContent += `\n`;
+      dispatch(addNotification({
+        type: 'success',
+        title: 'Build Successful!',
+        message: `${result.fileCount} files packaged into ${result.filename} (${sizeKB} KB${sizeMB})`,
+        duration: 8000,
+        dismissible: true,
+      }));
+    } catch (error) {
+      setBuildProgress(0);
+      setBuildStatus('');
+      dispatch(addNotification({
+        type: 'error',
+        title: 'Build Failed',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred during packaging.',
+        duration: 6000,
+        dismissible: true,
+      }));
+      setIsBuilding(false);
+      return;
     }
-
-    // Add API keys as env
-    if (Object.keys(form.apiKeys).length > 0) {
-      downloadContent += `${'─'.repeat(70)}\n`;
-      downloadContent += `FILE: .env.keys (DO NOT COMMIT)\n`;
-      downloadContent += `${'─'.repeat(70)}\n\n`;
-      for (const [key, value] of Object.entries(form.apiKeys)) {
-        downloadContent += `${key}=${value}\n`;
-      }
-      downloadContent += `\n`;
-    }
-
-    // Add all generated source files
-    for (const file of generatedFiles) {
-      downloadContent += `${'═'.repeat(70)}\n`;
-      downloadContent += `FILE: ${file.path}\n`;
-      downloadContent += `LANG: ${file.language} | TYPE: ${file.type}\n`;
-      downloadContent += `${'═'.repeat(70)}\n\n`;
-      downloadContent += file.content;
-      downloadContent += `\n\n`;
-    }
-
-    // Trigger download
-    const blob = new Blob([downloadContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${safeName}-${platformLabel}-v${form.appVersion}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    // Show success notification
-    dispatch(addNotification({
-      type: 'success',
-      title: 'Build Successful!',
-      message: `${generatedFiles.length} files generated and downloaded. (${(blob.size / 1024).toFixed(1)} KB)`,
-      duration: 6000,
-      dismissible: true,
-    }));
 
     // Close modal after short delay
     await delay(800);
@@ -764,8 +739,11 @@ export function BuildModal() {
                         <path d="M12 16v-4M12 8h.01" />
                       </svg>
                       <p className="text-xs text-builder-text-muted">
-                        The build will generate clean, commented source code following SOLID principles.
-                        Output will be human-readable and production-ready.
+                        {form.platform === TargetPlatform.Web
+                          ? 'A complete Next.js project will be downloaded as a ZIP file. Run "npm install && npm run dev" to start.'
+                          : form.platform === TargetPlatform.Android
+                          ? 'A Flutter project with Android configuration will be downloaded as an APK file. Open in Android Studio or run "flutter build apk".'
+                          : 'A Flutter project with iOS/Xcode configuration will be downloaded as a ZIP file. Open in Xcode or run "flutter build ios".'}
                       </p>
                     </div>
                   </motion.div>
@@ -808,7 +786,7 @@ export function BuildModal() {
                       ) : undefined
                     }
                   >
-                    {isBuilding ? buildStatus : 'Build & Download'}
+                    {isBuilding ? buildStatus : form.platform === TargetPlatform.Android ? 'Build APK' : form.platform === TargetPlatform.IOS ? 'Build iOS App' : 'Build & Download'}
                   </AnimatedButton>
                 </div>
               ) : (

@@ -268,6 +268,12 @@ export interface CodeGenOptions {
   readonly formatCode: boolean;
   readonly generateTypes: boolean;
   readonly cleanArchitecture: boolean;
+
+  // App metadata (used for Android/iOS project files)
+  readonly appName?: string;
+  readonly bundleId?: string;
+  readonly appVersion?: string;
+  readonly buildNumber?: number;
 }
 
 /* ──────────────────────────────────────────────
